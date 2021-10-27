@@ -1,0 +1,182 @@
+{% extends "survey/layout.html" %}
+
+{% load static %}
+{% block body %}
+   
+{% if user.is_superuser %}
+<div>
+<button id='block_quest'>Questions</button>
+<button id='block_survey'>Surveys</button>
+<button id='block_library'>Library</button>
+  
+  <div id='block_qu' class=''>
+
+      <button id='add_quest_block'>Add new question</button>
+        <div id='add_q_bl' class='none_display'>
+          <form class="row g-3" action="{% url 'add_question' %} " method='POST'>
+
+              {% csrf_token %}
+              {{ form.as_table }}
+                <div id='hidden_block' class='none_display'>
+                  <h4>Options</h4>
+                  <input type="text" name='opt1'><br>
+                  <input type="text" name='opt2'><br>
+                  <input type="text" name='opt3'><br>
+                  <input type="text" name='opt4'><br>
+                  <input type="text" name='opt5'><br>
+                </div>
+                <br>
+                  <input type="submit">
+          </form>
+      </div>
+        {% for c in questions %} 
+              <p>{{ c.id }}, {{c.question}}, {{c.question_type}}</p>
+
+                <a href="{% url 'delete_question' c.id %}">Delete question</a>
+                <a href="#" class='upd_quest' data-id={{ c.id }}>Update question</a>
+
+                  <div class='none_display'>
+                      <form class="row g-3" action="{% url 'update_question' quest_id=c.id %}" method='POST'>
+                      {% csrf_token %}
+                        <input type="text" name='question' value={{c.question}}>
+                        <select  name="question_type">
+                            <option value="single_choice">Single choice</option>
+                            <option value="multiple_choice">Multiple choice</option>
+                            <option value="text_answ">Text answer</option>
+                        </select>
+                        <input type="submit" value='Update'>
+                      </form>
+
+
+                <form class="row g-3" action="{% url 'add_opt' quest_id=c.id %}" method='POST'>
+                  {% csrf_token %}
+                    <input type="text" name='new_opt'>
+                    <input type="submit" value='Add option'>
+                  </form>
+
+            {% for b in c.options_list %} 
+                    <span>option: {{ b.option }}</span>
+
+                    <a href="{% url 'delete_opt' b.id %}">Delete option</a><br>
+            {% endfor %} 
+                
+                  </div>
+                  <hr>
+            {% endfor %} 
+
+        </div>
+        {% endif %}
+
+
+  {% if user.is_superuser %}
+
+          <div id='block_s'>
+
+            <button id='add_new_surv'>Add new survey</button>
+              <div id='add_n_surv' class='none_display'>
+                <form class="row g-3" action="{% url 'add_survey' %}" method='POST'>
+                  {% csrf_token %}
+                  {{ form_survey.as_p }}
+                  <input type="submit" value='Add survey'>
+                </form>
+                  {{ surveys }}
+              </div>
+            </button>
+
+          {% for c in surveys %} 
+                <p>{{ c.id }}, {{c.title}}, {{c.description}}</p>
+
+                  <a href="{% url 'delete_survey' c.id %}">Delete survey</a>
+                  <a href="#" class='upd_surv_bl' data-id={{ c.id }}>Update survey</a>
+
+                  <div class='none_display'>
+                          
+                    <form class="row g-3" action="{% url 'update_survey' surv_id=c.id  %}" method='POST'>
+                    {% csrf_token %}
+                      <input type="text" name='title' value={{c.title}}>
+                      <input type="text" name='description' value={{c.description}}>
+                      <input type="submit" >
+                    </form>
+
+                            <form class="row g-3" action="{% url 'add_on_list' surv_id=c.id  %}" method='POST'>
+                              {% csrf_token %}
+                                <select id="add_quest" name="question_id">
+                                    {% for t in questions %} 
+                                      <option value={{t.id}}>{{t.question}}</option>
+                                    {% endfor %} 
+                                </select>
+                                <input type="submit" value='Add question'>
+                              </form>
+
+                        
+                            {% for b in c.questions_list %} 
+                              <span>question: {{ b.question }}, id: {{ b.id }}</span>
+
+                              <a href="{% url 'del_from_list'  surv_id=c.id quest_id=b.id %}">Delete from list</a><br>
+                            {% endfor %} 
+                  </div>
+                  <hr>
+          {% endfor %} 
+
+
+  </div>
+  {% endif %}
+
+    <div id='block_l'>
+      {{surveys}}
+        {% for c in surveys %} 
+          <p>{{ c.title }}</p>
+          <div>{{ c.description }}</div>
+            <a href="#" class='open_surv'>Open survey</a>
+            <div class='none_display'>
+                    <form class="row g-3" action="{% url 'add_on_list' surv_id=c.id  %}" method='POST'>
+                      <ol>
+                      {% for r in c.questions_list %} 
+                        <li>{{r.question}}</li>
+
+                        {% if r.question_type == 'single_choice' %} 
+                        <ul>
+                            {% for opt in r.options_list %} 
+                          <li>
+                            <span>{{opt.option}}</span>
+                            <input type="radio"  name={{r.id}} value={{opt.option}}>
+                          </li>
+                            {% endfor %} 
+                        </ul>
+                        {% elif  r.question_type == 'multiple_choice'%} 
+
+                          <ul>
+                            {% for opt in r.options_list %} 
+                              <li>
+                                <span>{{opt.option}}</span>
+                                <input type='checkbox' name={{r.id}} value={{opt.id}}>
+                              </li>
+                            {% endfor %} 
+                          </ul>
+                        {% elif  r.question_type == 'text_answ' %} 
+
+                          <textarea id="" name="text_answer" cols="10" rows="10"></textarea>
+
+                        {% elif r.questions_list.length == 0 %} 
+                        <p >Недоступен</p> 
+                        {% endif %} 
+
+
+                      {% endfor %} 
+                      </ol>
+                    </form>
+            </div>
+          
+        
+        {% endfor %} 
+        
+
+  </div>
+
+</div>
+
+  {% block script %}
+      <script src="{% static 'survey/index.js' %}?{% now "U" %}"></script>
+  {% endblock %}
+
+{% endblock %}

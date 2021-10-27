@@ -1,0 +1,14 @@
+body {
+    padding: 10px;
+}
+
+.none_display {
+  display: none;
+}
+
+dialog {
+  background: ligthgrey;
+  width: 300px;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+  border-radius: 20px;
+}
