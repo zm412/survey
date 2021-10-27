@@ -49,19 +49,24 @@ class Add_question(forms.ModelForm):
         fields = ['question', 'question_type']
         exclude = ['opt1', 'opt2', 'opt3', 'opt4', 'opt5']
 
+def get_context(user):
+    surveys_inst_started = Survey_instance.objects.filter(user = user).filter(is_anonymous=False)
+    surveys = [q.serialize() for q in Survey.objects.all()]
+    surveys_new= [ q.serialize() for q in Survey.objects.all().exclude(Q(survey_item__user=user) & Q(survey_item__is_anonymous=False)) ]
+    return  {'form': Add_question(),
+            'form_survey': Add_survey(),
+            'surveys': surveys,
+            'surveys_inst_started': surveys_inst_started,
+            'surveys_new': surveys_new,
+            'questions': Question.objects.all()}
+
 
 def index(request):
-    surveys = [ q.serialize() for q in Survey.objects.all() ]
 
     if request.user.is_authenticated:
         surveys_inst_started = Survey_instance.objects.filter(user = request.user).filter(is_anonymous=False)
-        surveys_new= [ q.serialize() for q in Survey.objects.all().exclude(Q(survey_item__user=request.user) & Q(survey_item__is_anonymous=False)) ]
-        return render(request, "survey/index.html", {'form': Add_question(),
-                                                     'form_survey': Add_survey(),
-                                                     'surveys': surveys,
-                                                     'surveys_inst_started': surveys_inst_started,
-                                                     'surveys_new': surveys_new,
-                                                     'questions': Question.objects.all()})
+        surveys_new= Survey.objects.all().exclude(Q(survey_item__user=request.user) & Q(survey_item__is_anonymous=False))
+        return render(request, "survey/index.html", get_context(request.user) )
     else:
         return render(request, "survey/login.html")
 
@@ -71,40 +76,31 @@ def start_surv(request, surv_id):
     try:
         survey_inst = Survey_instance.objects.get(survey=survey, user=request.user )
         message = 'this survey instance alredy started'
-        print(survey_inst, 'INSTANCE')
     except Survey_instance.DoesNotExist:
         surv_inst = Survey_instance.objects.create(user=request.user, survey=survey,)
         message = 'survey_inst created'
-        print(surv_inst, 'INSTANCE')
-    print(message, 'messStartSurvey')
     return HttpResponseRedirect(reverse("index"))
 
 def add_interv(request, surv_id):
-    print(request.POST, 'lKLJJ')
     message = ''
     survey_inst = Survey_instance.objects.get(survey_id=surv_id, user=request.user )
     survey = Survey.objects.get(id=surv_id)
-    for c in request.POST:
-        if(c != 'csrfmiddlewaretoken'):
-            quest = Question.objects.get(id=c)
-            try:
-                old_answer = Answer.objects.get(survey_inst=survey_inst, user=request.user, question=quest )
-                new_str = ', '.join(request.POST.getlist(c))
-                old_answer.answer=new_str
-                message = 'answer is changed'
-                print(old_answer, 'old_answer')
-            except Answer.DoesNotExist:
-                new_str = ', '.join(request.POST.getlist(c))
-                answer = Answer.objects.create(
-                    user=request.user,
-                    question=quest,
-                    survey_inst=survey_inst,
-                    answer= new_str )
-                message = 'answer is added'
-                print(answer, 'answer')
+    for c in survey.questions.all():
+        new_str = ', '.join(request.POST.getlist(str( c.id )))
 
+        try:
+            old_answer = Answer.objects.get(survey_inst=survey_inst, user=request.user, question=c )
+            old_answer.answer=new_str
+            old_answer.save(update_fields=['answer'])
+            message = 'answer is changed'
+        except Answer.DoesNotExist:
+            answer = Answer.objects.create(
+                user=request.user,
+                question=c,
+                survey_inst=survey_inst,
+                answer= new_str )
+            message = 'answer is added'
 
-    print(message, 'adding interv')
     return HttpResponseRedirect(reverse("index"))
 
 def add_opt(request, quest_id):
@@ -116,7 +112,6 @@ def add_opt(request, quest_id):
             message = 'option is added'
         except Question.DoesNotExist:
             message = 'there is no question with this id'
-    print(message, 'added opt')
     return HttpResponseRedirect(reverse("index"))
 
 
@@ -129,7 +124,6 @@ def delete_opt(request, opt_id):
     except Option.DoesNotExist:
         message = 'there is no option with such id'
 
-    print(message, 'messageDelete')
     return HttpResponseRedirect(reverse("index"))
 
 
@@ -144,7 +138,6 @@ def update_survey(request, surv_id):
     else:
         message =  'Data is not valid'
 
-    print(message, 'mess')
     return HttpResponseRedirect(reverse("index"))
 
 
@@ -171,7 +164,6 @@ def add_survey(request):
     else:
         message =  'Data is not valid'
 
-    print(message, 'messageDelete')
     return HttpResponseRedirect(reverse("index"))
 
 def del_from_list(request, surv_id, quest_id):
@@ -184,7 +176,6 @@ def del_from_list(request, surv_id, quest_id):
     except Survey.DoesNotExist:
         message = 'there is no survey with such id'
 
-    print(message, 'deleteSurvFromList')
     return HttpResponseRedirect(reverse("index"))
 
 def add_on_list(request, surv_id):
@@ -198,7 +189,6 @@ def add_on_list(request, surv_id):
         except Survey.DoesNotExist:
             message = 'there is no survey with such id'
 
-    print(message, 'addedFromList')
     return HttpResponseRedirect(reverse("index"))
 
 
@@ -212,7 +202,6 @@ def delete_survey(request, surv_id):
     except Question.DoesNotExist:
         message = 'there is no survey with such id'
 
-    print(message, 'deleteSurvMess')
     return HttpResponseRedirect(reverse("index"))
 
 def delete_question(request, quest_id):
@@ -224,7 +213,6 @@ def delete_question(request, quest_id):
     except Question.DoesNotExist:
         message = 'there is no category with such id'
 
-    print(message, 'messageDelete')
     return HttpResponseRedirect(reverse("index"))
 
 
@@ -248,7 +236,6 @@ def update_question(request, quest_id):
     else:
         message = 'data is not valid'
 
-    print(message, 'messageUpdate')
     return HttpResponseRedirect(reverse("index"))
 
 
@@ -271,7 +258,7 @@ def add_question(request):
             for k in listArr:
                 if any(k):
                     opt = Option.objects.create(question=question, option=k)
-    return HttpResponseRedirect(reverse("index"))
+    return render(request, "survey/index.html", get_context(request.user) )
 
 
 def login_view(request):
