@@ -12,7 +12,7 @@ from datetime import timedelta, datetime
 from django.views.decorators.http import require_http_methods
 import json
 
-from .models import Question, Survey, Survey_instance, Option
+from .models import Question, Survey, Survey_instance, Option, Answer
 
 def get_questions():
     question_list = Question.objects.all()
@@ -32,7 +32,6 @@ class Add_survey(forms.ModelForm):
     class Meta:
         model = Survey
         fields = ['title', 'description']
-        exclude = ['questions']
 
 
 class Add_question(forms.ModelForm):
@@ -52,22 +51,61 @@ class Add_question(forms.ModelForm):
 
 
 def index(request):
-    questions = [ q.serialize() for q in Question.objects.all() ]
     surveys = [ q.serialize() for q in Survey.objects.all() ]
-    print(questions, 'questions')
+
     if request.user.is_authenticated:
+        surveys_inst_started = Survey_instance.objects.filter(user = request.user).filter(is_anonymous=False)
+        surveys_new= [ q.serialize() for q in Survey.objects.all().exclude(Q(survey_item__user=request.user) & Q(survey_item__is_anonymous=False)) ]
         return render(request, "survey/index.html", {'form': Add_question(),
                                                      'form_survey': Add_survey(),
                                                      'surveys': surveys,
-                                                     'questions': questions})
+                                                     'surveys_inst_started': surveys_inst_started,
+                                                     'surveys_new': surveys_new,
+                                                     'questions': Question.objects.all()})
     else:
         return render(request, "survey/login.html")
 
-def get_surveys(request):
-    return JsonResponse({'surveys': [surv.serialize() for surv in Survey.objects.all()]})
+def start_surv(request, surv_id):
+    message = ''
+    survey = Survey.objects.get(id=surv_id)
+    try:
+        survey_inst = Survey_instance.objects.get(survey=survey, user=request.user )
+        message = 'this survey instance alredy started'
+        print(survey_inst, 'INSTANCE')
+    except Survey_instance.DoesNotExist:
+        surv_inst = Survey_instance.objects.create(user=request.user, survey=survey,)
+        message = 'survey_inst created'
+        print(surv_inst, 'INSTANCE')
+    print(message, 'messStartSurvey')
+    return HttpResponseRedirect(reverse("index"))
 
-def update_opt(request, quest_id, opt):
-    pass
+def add_interv(request, surv_id):
+    print(request.POST, 'lKLJJ')
+    message = ''
+    survey_inst = Survey_instance.objects.get(survey_id=surv_id, user=request.user )
+    survey = Survey.objects.get(id=surv_id)
+    for c in request.POST:
+        if(c != 'csrfmiddlewaretoken'):
+            quest = Question.objects.get(id=c)
+            try:
+                old_answer = Answer.objects.get(survey_inst=survey_inst, user=request.user, question=quest )
+                new_str = ', '.join(request.POST.getlist(c))
+                old_answer.answer=new_str
+                message = 'answer is changed'
+                print(old_answer, 'old_answer')
+            except Answer.DoesNotExist:
+                new_str = ', '.join(request.POST.getlist(c))
+                answer = Answer.objects.create(
+                    user=request.user,
+                    question=quest,
+                    survey_inst=survey_inst,
+                    answer= new_str )
+                message = 'answer is added'
+                print(answer, 'answer')
+
+
+    print(message, 'adding interv')
+    return HttpResponseRedirect(reverse("index"))
 
 def add_opt(request, quest_id):
     message = ''
@@ -112,7 +150,6 @@ def update_survey(request, surv_id):
 
 
 def add_survey(request):
-    print(request.POST, 'SURVEY')
 
     message = ''
     if request.method == "POST":
@@ -124,7 +161,6 @@ def add_survey(request):
             surveys_quests = request.POST.getlist('question_list')
 
             for c in surveys_quests:
-                print(c, 'c')
                 questionI = Question.objects.get(id=c)
                 questionI.quest_collection.add(survey)
 
@@ -235,11 +271,7 @@ def add_question(request):
             for k in listArr:
                 if any(k):
                     opt = Option.objects.create(question=question, option=k)
-            return HttpResponseRedirect(reverse("index"))
-        else:
-            return render(request, 'survey/index.html', { "form": add_form })
-    else:
-        return render(request, 'survey/index.html', { "form": add_form })
+    return HttpResponseRedirect(reverse("index"))
 
 
 def login_view(request):

@@ -27,12 +27,10 @@ class Question(models.Model):
 
     def get_type(self):
         typeQ = json.loads( self.question_type )
-        print(typeQ, 'typeq')
         return typeQ
 
     def get_options_list(self):
         listO =  [v.serialize() for v in self.question_parent.all() ]
-        print(listO, 'listO')
         return listO
 
     def serialize(self):
@@ -75,7 +73,6 @@ class Survey(models.Model):
 
     def get_questions_list(self):
         querySet = self.questions.all()
-        print(querySet, 'QUERY')
 
         return [{'question': quest.question,
                  "id": quest.id,
@@ -95,19 +92,36 @@ class Survey(models.Model):
 
 
 
+
+
 class Survey_instance(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='item_interviewee')
-    from_surv = models.ForeignKey(Survey, on_delete=models.CASCADE, related_name='survey_item')
+    survey = models.ForeignKey(Survey, on_delete=models.CASCADE, related_name='survey_item')
     started = models.DateTimeField(auto_now_add=True)
     finished = models.DateTimeField(blank=True, null=True,)
     is_anonymous= models.BooleanField(default=False)
 
+    def __str__(self):
+        return f'id: {self.id} ,survey: {self.survey.id}, user: {self.user.username}, started: {self.started}'
+
+    def serialize(self):
+        return {
+            'id': self.id,
+            'user': self.user.username,
+            'survey': self.survey.title,
+            'started': self.started,
+            'is_anonymouse': self.is_anonymous,
+        }
+
+
 
 class Answer(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='interwe')
-    survey = models.ForeignKey(Survey, on_delete=models.CASCADE, related_name='survey_instance')
+    survey_inst = models.ForeignKey(Survey_instance, on_delete=models.CASCADE, related_name='survey_chapter')
     question = models.ForeignKey(Question, on_delete=models.CASCADE, related_name='questions_answ')
     answer = models.CharField(max_length=255, blank=True, null=True)
 
 
+    def __str__(self):
+        return f'id: {self.id} ,user: {self.user.username}, quesiton: {self.question.question}, answer: {self.answer}'
 

@@ -17,11 +17,27 @@ document.addEventListener('DOMContentLoaded', function() {
   document.querySelector('#block_library').addEventListener('click', () => load_block('#block_l'));
 
   let opnSurv = document.querySelectorAll('.open_surv');
+  let openStartedSurv = document.querySelectorAll('.open_started_surv');
+  let redo_surv = document.querySelectorAll('.redo_surv');
+  let updSet = document.querySelectorAll('.upd_surv_bl');
+  console.log(opnSurv, 'surv')
+
   for(let elem of opnSurv){
+    elem.onclick = (e) => { 
+      console.log(e.target, 'etarget')
+      fetch('start_surv/'+e.target.dataset.survid)
+      e.target.nextElementSibling.classList.toggle('none_display') };
+    
+  }
+
+
+  for(let elem of redo_surv){
     elem.onclick = (e) => e.target.nextElementSibling.classList.toggle('none_display');
   }
 
-  let updSet = document.querySelectorAll('.upd_surv_bl');
+  for(let elem of openStartedSurv){
+    elem.onclick = (e) => e.target.nextElementSibling.classList.toggle('none_display');
+  }
 
   for(let elem of updSet){
     elem.onclick = (e) => e.target.nextElementSibling.classList.toggle('none_display');
