@@ -12,7 +12,7 @@ from datetime import timedelta, datetime
 from django.views.decorators.http import require_http_methods
 import json
 
-from .models import Question, Survey, Survey_instance, Option, Answer
+from .models import User, Question, Survey, Survey_instance, Option, Answer
 
 def get_questions():
     question_list = Question.objects.all()

@@ -185,6 +185,7 @@
           <ol>
         {% for c in surveys_inst_started %} 
             <li>{{c.survey.title}}</li>
+                                
             <a href="#" class='open_started_surv' data-survid={{c.survey.id}}>Show results</a>
                 <div class='none_display'>
                     <h6>Survey title: {{ c.survey.title }}</h6>
