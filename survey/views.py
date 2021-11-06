@@ -21,14 +21,14 @@ def get_questions():
         list.append((a.id, a.question))
     return tuple(list)
 
+list_of_questions = ()
 
 
 class Add_survey(forms.ModelForm):
 
     question_list = forms.MultipleChoiceField(required=False,
                                              widget=forms.SelectMultiple,
-                                             choices=get_questions()
-                                            )
+                                             choices=list_of_questions)
     class Meta:
         model = Survey
         fields = ['title', 'description']
@@ -43,7 +43,6 @@ class Add_question(forms.ModelForm):
                                              widget=forms.SelectMultiple,
                                              choices=question_type_list
                                             )
-
     class Meta:
         model = Question
         fields = ['question', 'question_type']
@@ -63,6 +62,8 @@ def get_context(user):
 
 def index(request):
 
+    list_of_questions = tuple([(a.id, a.question) for a in Question.objects.all()])
+    print(list_of_questions, 'quests')
     if request.user.is_authenticated:
         surveys_inst_started = Survey_instance.objects.filter(user = request.user).filter(is_anonymous=False)
         surveys_new= Survey.objects.all().exclude(Q(survey_item__user=request.user) & Q(survey_item__is_anonymous=False))
@@ -147,6 +148,7 @@ def add_survey(request):
     message = ''
     if request.method == "POST":
         new_surv = Survey(user=request.user)
+        list_of_questions = get_questions()
         add_form = Add_survey(request.POST, instance=new_surv)
 
         if add_form.is_valid():

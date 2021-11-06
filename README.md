@@ -71,3 +71,12 @@ $python manage.py runserver
 9. Открыть страницу в браузере: 
 
 http://127.0.0.1:8000
+
+
+#### Docker.hub
+zm412/survey
+
+docker run --name django-docker -e "PORT=8765" -e "DEBUG=1" -p 8007:8765 zm412/survey
+
+
+
